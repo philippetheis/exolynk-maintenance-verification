@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="style.css">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css">
+    <script src="https://kit.fontawesome.com/eacdd5a1b5.js" crossorigin="anonymous"></script>
+
+    <!-- Icon animation -->
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+
+<body>
+
+    <!-- <h2>Data Fetch Example</h2> -->
+    <h2 id="statusMessage">Loading status...</h2>
+
+    <div id="successDiv" style="display:none;">
+        <div class="animation-ctn">
+            <div class="icon icon--order-success svg">
+            <svg 
+                 xmlns="http://www.w3.org/2000/svg" width="154px" height="154px">  
+              <g fill="none" stroke="rgba(33, 136, 56, 1)" stroke-width="2"> 
+                <circle cx="77" cy="77" r="72" style="stroke-dasharray:480px, 480px; stroke-dashoffset: 960px;"></circle>
+                <circle id="colored" fill="rgba(33, 136, 56, 1)" cx="77" cy="77" r="72" style="stroke-dasharray:480px, 480px; stroke-dashoffset: 960px;"></circle>
+                <polyline class="st0" stroke="#fff" stroke-width="10" points="43.5,77.8 63.7,97.9 112.2,49.4 " style="stroke-dasharray:100px, 100px; stroke-dashoffset: 200px;"/>   
+              </g> 
+            </svg>
+          </div>
+        </div>
+    </div>
+
+    <div id="errorDiv" style="display:none;">
+        <div class="animation-ctn">
+            <div class="icon icon--order-success svg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="154px" height="154px">  
+              <g fill="none" stroke="rgba(220, 53, 69, 1)" stroke-width="2"> 
+                <circle cx="77" cy="77" r="72" style="stroke-dasharray:480px, 480px; stroke-dashoffset: 960px;"></circle>
+                <circle id="colored" fill="rgba(220, 53, 69, 1)" cx="77" cy="77" r="72" style="stroke-dasharray:480px, 480px; stroke-dashoffset: 960px;"></circle>
+                <polyline class="st0" stroke="#fff" stroke-width="10" points="43.5,77.8  112.2,77.8 " style="stroke-dasharray:100px, 100px; stroke-dashoffset: 200px;"/>   
+              </g> 
+            </svg>
+          </div>
+        </div>        
+    </div>
+
+
+    <br><br>
+    <p><strong>Ident: </strong><span id="identDisplay">Loading...</span></p>
+    <p><strong>Letzte Wartung: </strong><span id="datetimeDisplay">Loading...</span></p>
+    <p><strong>Wartungsintervall: </strong><span id="maintenanceIntervalDisplay">Loading...</span> Tage</p>
+    <p><strong>Status: </strong><span id="statusDisplay">Loading...</span></p>
+
+    <div id="successDiv" style="display:none;" class="d-grid gap-2 col-6 mx-auto">
+        <button class="btn btn-success" type="button">Service Termin</button>
+        <button class="btn btn-success" type="button">Kontakt</button>
+    </div>
+
+    <div id="errorDiv" style="display:none;">
+        <div class="d-grid gap-2 col-6 mx-auto">
+            <button class="btn btn-error" type="button">Service Termin</button>
+            <button class="btn btn-error" type="button">Kontakt</button>
+        </div>
+    </div>
+    
+
+    <script>
+
+        let envID;
+
+        document.addEventListener("DOMContentLoaded", function() {
+        // Function to login fetch envID and bearer token from first Login atempt
+        function login() {
+
+            const urlParams = new URLSearchParams(window.location.search);
+            envID = urlParams.get('envID'); //fetch record UUID from URL Parameter
+            console.log('DEBUG_1: envID:', envID);
+
+            if (envID) {
+            fetch(`login.php?envID=${envID}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if(data.success) {
+                        console.log('Logged in successfully:', data.bearer);
+                        // Trigger the data fetch after successful login
+                        fetchData();
+                    } else {
+                        console.error('Login failed: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Login error: ' + error));
+            } else {
+                    console.error('envID not found in URL');
+                }
+        }
+        
+        // Trigger login on page load
+        login();
+    });
+
+        // Function to login and fetch recordID from URL and Data from REST API
+        function fetchData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const recordId = urlParams.get('recordId'); //fetch record UUID from URL Parameter
+
+            fetch('fetch_data.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ recordId: recordId }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                console.log(data);  // Log data to console for debugging
+                if(data.success) {
+                    console.log('Data fetched successfully:', data.data);
+
+                    // Check for 'status' in returned data and update display
+                    if ('status' in data.data) {
+                        document.getElementById('statusDisplay').innerText = data.data.status;
+                        const statusIcon = document.getElementById('statusIcon');
+                        // change color depending on status
+                        if (data.data.status === 'active') {
+                            document.body.style.backgroundColor = 'rgba(33, 136, 56, 0.2)';
+                            document.getElementById("successDiv").style.display = "block";
+                            // statusIcon.className = 'fa-regular fa-circle-check fa-beat-fade fa-2xl'; // OK Icon
+                            // statusIcon.style.color = 'rgba(33, 136, 56, 1)'; // Set color of Icon
+                            statusMessage.innerText = 'Keine Wartung anstehend!';
+                        } else if (data.data.status === 'maintenance') {
+                            document.getElementById("errorDiv").style.display = "block";
+                            document.body.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+                            // statusIcon.className = 'fa-solid fa-circle-exclamation fa-beat-fade fa-2xl'; // NOK Icon
+                            // statusIcon.style.color = 'rgba(220, 53, 69, 1)'; // Set color of Icon
+                            statusMessage.innerText = 'Wartung nötig!';
+
+                        } else {
+                            console.error('Unknown status value');
+                        }
+                    } else {
+                        console.error('Status not found in fetched data');
+                        document.getElementById('statusDisplay').innerText = 'Status not found';
+                    }
+
+                    // Check for 'maintenance_interval' in returned data and update display
+                    if ('maintenance_interval' in data.data) {
+                        document.getElementById('maintenanceIntervalDisplay').innerText = data.data.maintenance_interval;
+                    } else {
+                        console.error('Maintenance interval not found in fetched data');
+                        document.getElementById('maintenanceIntervalDisplay').innerText = 'Maintenance interval not found';
+                    }
+                    
+                    // Check for 'ident' in returned data and update display
+                    if ('ident' in data.data) {
+                        document.getElementById('identDisplay').innerText = data.data.ident;
+                    } else {
+                        console.error('Ident not found in fetched data');
+                        document.getElementById('identDisplay').innerText = 'Ident not found';
+                    }
+                    
+                    // Check for 'Datetime' in returned data and update display
+                    if ('Datetime' in data.data) {
+                        let date = parseCustomDate(data.data.Datetime);
+                        // Check if the date is valid
+                        console.log('date format:', date);
+                        if (date) {
+                            document.getElementById('datetimeDisplay').innerText = date.toString();
+                        } else {
+                            console.error('Parsed date is invalid');
+                            document.getElementById('datetimeDisplay').innerText = 'Invalid Date';
+                        }
+                    } else {
+                        console.error('Datetime not found in fetched data');
+                        document.getElementById('datetimeDisplay').innerText = 'Datetime not found';
+                    }
+
+                } else {
+                    console.error('Data fetch failed: ' + data.error);
+                    document.getElementById('identDisplay').innerText = 'Error fetching data (ident)';
+                    document.getElementById('datetimeDisplay').innerText = 'Error fetching data (datetime)';
+                    document.getElementById('maintenanceIntervalDisplay').innerText = 'Error fetching data (maintenanceInterval)';
+                    document.getElementById('statusDisplay').innerText = 'Error fetching data (Status)';
+                }
+            })
+            .catch(err => {
+                console.error('Fetch failed', err);
+                document.getElementById('identDisplay').innerText = 'Fetch failed (Ident)';
+                document.getElementById('datetimeDisplay').innerText = 'Fetch failed (datetime)';
+                document.getElementById('maintenanceIntervalDisplay').innerText = 'Fetch failed (maintenanceInterval)';
+                document.getElementById('statusDisplay').innerText = 'Fetch failed (Status)';
+            });
+}
+
+    //manually parse the Exolynk Date format into ISO 8601 format
+    function parseCustomDate(str) {
+    const regex = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{1,9}) ([+-]\d{2}):(\d{2}):(\d{2})/;
+    //IMPORTANT: .(\d{1}) can be also .(\d{3}) thats why I set a range: .(\d{1,9})
+    const parts = str.match(regex);
+
+    // If parsing fails, return null
+    if (!parts) {
+        console.error('Date string could not be parsed:', str);
+        return null;
+    }
+
+    const year = +parts[1];
+    const month = +parts[2] - 1; // Month index is 0-based in JavaScript Date
+    const day = +parts[3];
+    const hour = +parts[4];
+    const minute = +parts[5];
+    const second = +parts[6];
+    const millisecond = +parts[7];
+    const timezoneOffsetMinutes = +parts[8] * 60 + +parts[9]; // Might need to adjust sign
+
+    // Create Date object
+    const date = new Date(Date.UTC(year, month, day, hour, minute, second, millisecond));
+
+    // Adjust for timezone
+    date.setMinutes(date.getMinutes() - timezoneOffsetMinutes);
+
+    return date;
+    }
+
+    </script>
+    </body>
+</html>
+    
